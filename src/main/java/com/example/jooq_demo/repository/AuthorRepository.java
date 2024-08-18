@@ -1,19 +1,27 @@
 package com.example.jooq_demo.repository;
 
-import com.example.jooq_demo.dto.request.AuthorCreationRequest;
-import com.example.jooq_demo.dto.request.AuthorUpdateRequest;
 import com.example.jooq_demo.dto.request.PageRequest;
 import com.example.jooq_demo.dto.response.AuthorResponse;
+import com.example.jooq_demo.dto.response.BookResponse;
 import com.example.jooq_demo.dto.response.PageResponse;
 import com.example.jooq_demo.model.Tables;
 import com.example.jooq_demo.model.tables.pojos.Author;
+import com.example.jooq_demo.model.tables.pojos.Book;
+import com.example.jooq_demo.model.tables.records.AuthorRecord;
+import com.example.jooq_demo.model.tables.records.BookRecord;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import org.jooq.DSLContext;
+import org.jooq.Result;
 import org.springframework.stereotype.Repository;
+import org.springframework.util.CollectionUtils;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 
 @Repository
@@ -41,13 +49,8 @@ public class AuthorRepository {
                     .where(Tables.AUTHOR.ID.eq(id))
                     .execute();
     }
-    public List<AuthorResponse> findAll(){
-         List<AuthorResponse> authorResponses = dslContext.select()
-                .from(Tables.AUTHOR)
-                 .fetchInto(AuthorResponse.class);
-         return authorResponses;
-    }
-    public PageResponse<AuthorResponse> findAll(PageRequest pageRequest){
+
+    public PageResponse<Author> findAll(PageRequest pageRequest){
         int totalRecords=dslContext.selectCount()
                 .from(Tables.AUTHOR)
                 .fetchOne(0,int.class);
@@ -58,16 +61,16 @@ public class AuthorRepository {
             page=1;
         }
         int offset= (page-1)*size;
-        List<AuthorResponse> authorResponses = dslContext.select()
+        List<Author> authors = dslContext.select()
                 .from(Tables.AUTHOR)
                 .offset(offset)
                 .limit(size)
-                .fetchInto(AuthorResponse.class);
-        return PageResponse.<AuthorResponse>builder()
+                .fetchInto(Author.class);
+        return PageResponse.<Author>builder()
                 .page(page)
                 .size(size)
                 .totalPage(totalPage)
-                .data(authorResponses)
+                .data(authors)
                 .build();
     }
     public AuthorResponse findById(Integer id){
@@ -75,5 +78,21 @@ public class AuthorRepository {
                 .from(Tables.AUTHOR)
                 .where(Tables.AUTHOR.ID.equal(id))
                 .fetchOneInto(AuthorResponse.class);
+    }
+    public Map<Author,List<Book>> findByAuthorId(Integer id){
+     var data =  dslContext.select()
+                .from(Tables.AUTHOR)
+                .innerJoin(Tables.BOOK)
+                .on(Tables.AUTHOR.ID.eq(Tables.BOOK.AUTHOR_ID))
+                .where(Tables.AUTHOR.ID.eq(id))
+              .fetchGroups(Tables.AUTHOR,Tables.BOOK);
+            Map<Author,List<Book>> response=new HashMap<>();
+        for (Map.Entry<AuthorRecord, Result<BookRecord>> entry: data.entrySet()) {
+                Author author=entry.getKey().into(Author.class);
+                List<Book> books=entry.getValue()
+                        .stream().map(bookRecord -> bookRecord.into(Book.class)).collect(Collectors.toList());
+                response.put(author,books);
+        }
+        return response;
     }
 }

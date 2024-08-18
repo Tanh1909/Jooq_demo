@@ -15,6 +15,7 @@ import org.jooq.DSLContext;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
+import java.util.Map;
 
 @Repository
 @RequiredArgsConstructor
@@ -49,6 +50,8 @@ public class BookRepository {
                 .from(Tables.BOOK)
                 .fetchInto(BookResponse.class);
     }
+
+
 
     public PageResponse<BookResponse> findAll(PageRequest pageRequest){
         int totalRecords=dslContext.selectCount()

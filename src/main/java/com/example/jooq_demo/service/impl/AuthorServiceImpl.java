@@ -6,6 +6,8 @@ import com.example.jooq_demo.dto.request.PageRequest;
 import com.example.jooq_demo.dto.response.AuthorResponse;
 import com.example.jooq_demo.dto.response.PageResponse;
 import com.example.jooq_demo.mapper.AuthorMapper;
+import com.example.jooq_demo.model.tables.pojos.Author;
+import com.example.jooq_demo.model.tables.pojos.Book;
 import com.example.jooq_demo.repository.AuthorRepository;
 import com.example.jooq_demo.repository.BookRepository;
 import com.example.jooq_demo.service.AuthorService;
@@ -14,6 +16,9 @@ import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.List;
+import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
@@ -30,13 +35,25 @@ public class AuthorServiceImpl implements AuthorService {
     }
 
     @Override
+    public Map<Author, List<Book>> findBookByAuthorId(Integer id) {
+        return authorRepository.findByAuthorId(id);
+    }
+
+    @Override
     public void update(Integer id, AuthorUpdateRequest authorUpdateRequest) {
         authorRepository.update(id,authorMapper.toAuthor(authorUpdateRequest));
     }
 
     @Override
     public PageResponse<AuthorResponse> findAll(PageRequest pageRequest) {
-        return authorRepository.findAll(pageRequest);
+            PageResponse<Author> pageResponse=authorRepository.findAll(pageRequest);
+
+        return PageResponse.<AuthorResponse>builder()
+                .size(pageResponse.getSize())
+                .totalPage(pageResponse.getTotalPage())
+                .page(pageResponse.getPage())
+                .data(authorMapper.toAuthorResponses(pageResponse.getData()))
+                .build();
     }
 
     @Override
